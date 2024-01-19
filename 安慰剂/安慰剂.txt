@@ -1,0 +1,95 @@
+xtset Stkcd year
+
+	keep year Stkcd cipin
+
+	save temp,replace
+	append using temp
+	save temp,replace
+	append using temp
+	save temp,replace
+	append using temp
+	save temp,replace   //叠加样本量以做随机试验
+	  
+	use temp,clear
+	bys Stkcd year : gen N=_n
+
+	preserve
+	bys N :gen k = uniform()
+	duplicates drop N Stkcd,force
+	sort N k
+	bys N :gen x = _n
+	keep N Stkcd x
+	save tt,replace 
+	  
+	restore
+	 
+merge m:1 N Stkcd using tt  //注意id
+  
+   sort N x year 
+    
+   gen after = 0
+
+   sort N  year x
+   replace after=1 if year==2008 &  x<1597 
+   replace after=1 if year==2009 &  x<1744
+   replace after=1 if year==2010 &  x<2012
+   replace after=1 if year==2011 &  x<2345 
+   replace after=1 if year==2012 &  x<2488
+   replace after=1 if year==2013 &  x<2531
+   replace after=1 if year==2014 &  x<2649 
+   replace after=1 if year==2015 &  x<2837
+   replace after=1 if year==2016 &  x<3132
+   replace after=1 if year==2017 &  x<3498
+   replace after=1 if year==2018 &  x<3414
+   replace after=1 if year==2019 &  x<3514
+   statsby _b[after] _se[after] , clear by(N):xtreg cipin after i.year,fe  
+  //此处放入基准回归，但是核心解释变量换为after  ，需要换的只有dvar    gdzchj zczj lrze syzqyhj bnyfgzze，其中dvar是被解释变量， gdzchj zczj lrze syzqyhj bnyfgzze为控制变量
+                 
+   save tempp3,replace
+   //需先运行  use high~到statsby _b[after]~的部分，在运行save tempp3,replace，然后在运行循环即forvalue到 } 
+   forvalue i=1/12{  //8可以改成您想要做的试验次数，当然试验次数越多越多。
+
+    use temp,clear
+   bys Stkcd year : gen N=_n
+
+   preserve
+   bys N :gen k = uniform()
+   duplicates drop N Stkcd,force
+   sort N k
+   bys N :gen x = _n
+   keep N Stkcd x
+   save tt,replace 
+  
+   restore
+ 
+   merge m:1 N Stkcd using tt  //注意id
+  
+   sort N x year 
+    
+   gen after = 0
+
+   sort N  year x
+   replace after=1 if year==2008 &  x<1597 
+   replace after=1 if year==2009 &  x<1744
+   replace after=1 if year==2010 &  x<2012
+   replace after=1 if year==2011 &  x<2345 
+   replace after=1 if year==2012 &  x<2488
+   replace after=1 if year==2013 &  x<2531
+   replace after=1 if year==2014 &  x<2649 
+   replace after=1 if year==2015 &  x<2837
+   replace after=1 if year==2016 &  x<3132
+   replace after=1 if year==2017 &  x<3498
+   replace after=1 if year==2018 &  x<3414
+   replace after=1 if year==2019 &  x<3514
+   statsby _b[after] _se[after] , clear by(N):xtreg cipin after i.year,fe  
+  //此处放入基准回归，但是核心解释变量换为after  ，需要换的只有dvar    gdzchj zczj lrze syzqyhj bnyfgzze，其中dvar是被解释变量， gdzchj zczj lrze syzqyhj bnyfgzze为控制变量
+       append using tempp3
+  save tempp3,replace
+
+ }  
+  
+   kdensity _stat_1 , normal xline( 1.149136  ) //基准回归的回归系数
+  
+   gen t = _stat_1 /_stat_2
+
+   kdensity t,normal xline(  2.81  )
